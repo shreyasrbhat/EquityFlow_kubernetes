@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-connector
+data:
+  connector-config.json: |
+    {
+    "name": "postgres-connector",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "tasks.max": "1",
+      "plugin.name": "pgoutput",
+      "database.history.kafka.bootstrap.servers": "kafka-statefulset-0.kafka-svc.default.svc.cluster.local:9092,kafka-statefulset-1.kafka-svc.default.svc.cluster.local:9092,kafka-statefulset-2.kafka-svc.default.svc.cluster.local:9092",
+      "database.history.kafka.topic": "schema-changes.stock_data",
+      "database.hostname": "kafka-svc",
+      "database.port": "5432",
+      "database.user": "admin",
+      "database.password": "password",
+      "database.dbname" : "stocks_db",
+      "database.server.name": "kafka-svc",
+      "table.include.list": "public.stock_data",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "decimal.handling.mode": "double",
+      "key.converter.schemas.enable": "false",
+      "value.converter.schemas.enable": "false",
+      "include.schema.changes": "false",
+      "topic.prefix": "daily_change"
+
+    }
+    }

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-external
+  labels:
+    app: kafka_app
+spec:
+  type: NodePort
+  ports:
+  - name: kafka
+    port: 9092
+    targetPort: 9092
+    nodePort: 30092 # NodePort range is typically 30000-32767
+  selector:
+    app: kafka_app

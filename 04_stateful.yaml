@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka-statefulset
+  labels:
+    app: stock_analyser_kafka_statefulset 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      service: kafka_app
+  serviceName: kafka-svc
+  template:
+    metadata:
+      labels:
+        service: kafka_app
+        app: stock_analyser
+    spec:
+      containers:
+      - name: kafka-broker
+        image: apache/kafka:latest
+        ports:
+        - containerPort: 9092
+        - containerPort: 9093
+        - containerPort: 29092
+        volumeMounts:
+        - name: kafka-broker-volume
+          mountPath: /tmp/kafka-logs
+        command:
+          - sh
+          - -exc
+          - |
+            export CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)" && \
+
+            export KAFKA_NODE_ID=${HOSTNAME##*-} && \
+
+            export KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+            export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT && \
+
+            export KAFKA_LISTENERS=INTERNAL://${POD_NAME}.kafka-svc.default.svc.cluster.local:9092,CONTROLLER://${POD_NAME}.kafka-svc.default.svc.cluster.local:9093,EXTERNAL://localhost:29092 && \
+
+            export KAFKA_ADVERTISED_LISTENERS=INTERNAL://${POD_NAME}.kafka-svc.default.svc.cluster.local:9092,EXTERNAL://localhost:29092 && \
+
+            export KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL && \
+
+            export KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka-statefulset-0.kafka-svc.default.svc.cluster.local:9093,1@kafka-statefulset-1.kafka-svc.default.svc.cluster.local:9093,2@kafka-statefulset-2.kafka-svc.default.svc.cluster.local:9093
+
+            exec /etc/kafka/docker/run
+
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: KAFKA_PROCESS_ROLES
+          value: "broker,controller"
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: "true"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+
+    
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-broker-volume
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+        storageClassName: kafka-storage
+
+      
+      
+        
+        # hostPath:
+        #   path: /data/kafka-logs
+        #   type: DirectoryOrCreate
+          
+

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-debezium
+  labels:
+    app: kafka-debezium
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: kafka-debezium
+  template:
+      metadata:
+        labels:
+          service: kafka-debezium
+          app: stock_analyser
+      spec:
+        containers:
+        - name: kafka-debezium
+          image: debezium/connect:2.7.3.Final
+          ports:
+          - containerPort: 8083
+          env:
+          - name: BOOTSTRAP_SERVERS
+            value: 'kafka-statefulset-0.kafka-svc.default.svc.cluster.local:9092,kafka-statefulset-1.kafka-svc.default.svc.cluster.local:9092,kafka-statefulset-2.kafka-svc.default.svc.cluster.local:9092'
+          - name: GROUP_ID
+            value: '1'
+          - name: CONFIG_STORAGE_TOPIC
+            value: connect_configs
+          - name: STATUS_STORAGE_TOPIC
+            value: connect_statuses
+          - name: OFFSET_STORAGE_TOPIC
+            value: connect_offsets
+          - name: KEY_CONVERTER
+            value: org.apache.kafka.connect.json.JsonConverter
+          - name: VALUE_CONVERTER
+            value: org.apache.kafka.connect.json.JsonConverter
+          - name: ENABLE_DEBEZIUM_SCRIPTING
+            value: 'true'
+          volumeMounts:
+          - name: postgres-connector
+            mountPath: /debezium_config
+          command: ["/bin/sh", '-c']
+          args:
+          - |
+            until wget --method=GET -s http://kafka-svc:8083/; do
+              echo "Waiting for Kafka Connect to be ready..."
+              sleep 5
+            done
+            wget --methos=POST -H "Content-Type: application/json" \
+              --data @/debezium_config/connector-config.json \
+              http://localhost:8083/connectors
+          
+        volumes:
+        - name: postgres-connector
+          configMap:
+            name: postgres-connector
+            items:
+            - key: connector-config.json
+              path: connector-config.json
+            
+
+          
+
+       
+      
+      
