@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgresdb
+spec:
+  selector:
+    matchLabels:
+      service: postgres_app
+  template:
+    metadata:
+      labels:
+        service: postgres_app
+        app: stock_analyser
+    spec:
+      containers:
+      - name: postgresdb
+        image: postgres:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5432
+        args:
+        - -c
+        - wal_level=logical
+        volumeMounts:
+        - name: postgres-volume
+          mountPath: /var/lib/postgresql/data
+
+        env:
+        - name: POSTGRES_DB
+          value: stocks_db
+        - name: POSTGRES_USER
+          value: admin
+        - name: POSTGRES_PASSWORD
+          value: password
+      volumes:
+      - name: postgres-volume
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+

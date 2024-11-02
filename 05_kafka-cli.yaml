@@ -1,0 +1,26 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-cli
+  labels:
+    app: kafka-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: kafka-cli
+
+  template:
+    metadata:
+      labels:
+        service: kafka-cli
+        app: stock_analyser
+    spec:
+      containers:
+       - name: kafka-cli
+         image: conitasgmbh/kafka-cli
+         command: ["/bin/sh"]
+         args: ["-c", "while true; do sleep 3600; done"]
+      restartPolicy: Always
+
